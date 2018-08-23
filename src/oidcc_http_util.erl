@@ -186,13 +186,13 @@ ssl_verify_fun(Hostname) ->
 
     BinHostList = HostPartList(Hostname),
     IsValid =
-        fun(HostOfCert, CurValid) ->
-                CrtList = HostPartList(HostOfCert),
-                LongEnough = length(CrtList) >= 2,
+        fun(HostOfCert, CurValid) ->                
+                CrtList = HostPartList(HostOfCert),                
+                LongEnough = length(CrtList) >= 2,                
                 Valid = case lists:foldl(Compare, CrtList, BinHostList) of
-                            [] -> true;
+                            [] -> true;                            
                             Other -> Other
-                        end,
+                        end == true,            
                 case Valid and LongEnough of
                     true -> true;
                     _ -> CurValid
@@ -200,7 +200,7 @@ ssl_verify_fun(Hostname) ->
         end,
 
     ContainsValidHost =
-        fun(HostsOfCert, UserState) ->
+        fun(HostsOfCert, UserState) ->            
                case lists:foldl(IsValid, false, HostsOfCert) of
                    true ->
                         {valid, UserState};
@@ -219,16 +219,19 @@ ssl_verify_fun(Hostname) ->
             (_, valid, UserState) ->
                 %% nothing to do with intermediate CA-certificates
                 {valid, UserState};
-            (Cert, valid_peer, UserState) ->
+            (Cert, valid_peer, UserState) ->                
                 %% validate the certificate of the peer host
                 TBSCert = Cert#'OTPCertificate'.tbsCertificate,
-                Extensions = TBSCert#'OTPTBSCertificate'.extensions,
+                Extensions = TBSCert#'OTPTBSCertificate'.extensions,                
                 case lists:keysearch(?'id-ce-subjectAltName',
                                      #'Extension'.extnID, Extensions) of
-                    {value, #'Extension'{extnValue = ExtValue}} ->
-                        HostsOfCert = lists:foldl(ExtractHosts, [], ExtValue),
-                        ContainsValidHost(HostsOfCert, UserState);
-                    false ->
+                    {value, #'Extension'{extnValue = ExtValue}} ->                        
+                        HostsOfCert = lists:foldl(ExtractHosts, [], ExtValue), 
+                        io:format("START: ~p~n", [HostsOfCert]),                    
+                        Result = ContainsValidHost(HostsOfCert, UserState),
+                        io:format("END: ~p~n", [Result]),                    
+                        Result;
+                    false ->                        
                         {fail, invalid_certificate_hostname}
                 end
         end,
