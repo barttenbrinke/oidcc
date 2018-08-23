@@ -226,11 +226,8 @@ ssl_verify_fun(Hostname) ->
                 case lists:keysearch(?'id-ce-subjectAltName',
                                      #'Extension'.extnID, Extensions) of
                     {value, #'Extension'{extnValue = ExtValue}} ->                        
-                        HostsOfCert = lists:foldl(ExtractHosts, [], ExtValue), 
-                        io:format("START: ~p~n", [HostsOfCert]),                    
-                        Result = ContainsValidHost(HostsOfCert, UserState),
-                        io:format("END: ~p~n", [Result]),                    
-                        Result;
+                        HostsOfCert = lists:foldl(ExtractHosts, [], ExtValue),                         
+                        ContainsValidHost(HostsOfCert, UserState);                                                
                     false ->                        
                         {fail, invalid_certificate_hostname}
                 end
