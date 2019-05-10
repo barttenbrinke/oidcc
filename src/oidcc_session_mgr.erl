@@ -23,6 +23,7 @@
 -export([start_link/0]).
 -export([stop/0]).
 -export([new_session/1]).
+-export([new_session/3]).
 -export([get_session/1]).
 -export([close_all_sessions/0]).
 -export([get_session_list/0]).
@@ -51,6 +52,10 @@ stop() ->
 new_session(ProviderId) ->
     gen_server:call(?MODULE, {new_session, ProviderId}).
 
+-spec new_session(binary(), ID :: binary(), binary()) -> {ok, pid()}.
+new_session(ProviderId, ID, Nonce) ->
+    gen_server:call(?MODULE, {new_session, ProviderId, ID, Nonce}).
+
 -spec get_session(ID :: uuid:uuid()) -> {ok, pid()}.
 get_session(ID) ->
     gen_server:call(?MODULE, {get_session, ID}).
@@ -74,6 +79,9 @@ init([]) ->
 
 handle_call({new_session, ProviderId}, _From, State) ->
     {ok, Pid, NewState} = create_new_session(ProviderId, State),
+    {reply, {ok, Pid}, NewState};
+handle_call({new_session, ProviderId, ID, Nonce}, _From, State) ->
+    {ok, Pid, NewState} = create_new_session(ProviderId, ID, Nonce, State),
     {reply, {ok, Pid}, NewState};
 handle_call({get_session, Id}, _From, State) ->
     Result = lookup_session(Id, State),
@@ -143,6 +151,11 @@ lookup_session(Id, #state{sessions = Sessions}) ->
 
 session_list(#state{sessions = Sessions}) ->
     Sessions.
+
+create_new_session(ProviderId, ID, Nonce, State) ->
+    {ok, Pid} = oidcc_session_sup:new_session(ID, Nonce, ProviderId),
+    {ok, NewState} = set_session_for_id(ID, Pid, State),
+    {ok, Pid, NewState}.
 
 create_new_session(ProviderId, State) ->
     ID = get_unique_id(State),
