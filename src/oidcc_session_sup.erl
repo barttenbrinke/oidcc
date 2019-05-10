@@ -10,8 +10,8 @@
 new_session(Id, Nonce, ProviderId) ->
     supervisor:start_child(?MODULE, [Id, Nonce, ProviderId]).
 
-new_session(Id, Nonce, ProviderId, Scopes) ->
-    supervisor:start_child(?MODULE, [Id, Nonce, ProviderId, Scopes]).
+new_session(Id, Nonce, ProviderId, Pkce) ->
+    supervisor:start_child(?MODULE, [Id, Nonce, ProviderId, Pkce]).
 
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
