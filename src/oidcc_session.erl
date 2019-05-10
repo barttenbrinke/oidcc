@@ -5,6 +5,7 @@
 %% API.
 -export([start_link/3]).
 -export([start_link/4]).
+-export([start_link/5]).
 -export([is_user_agent/2]).
 -export([is_cookie_data/2]).
 -export([is_peer_ip/2]).
@@ -37,17 +38,14 @@
 start_link(Id, Nonce, ProviderId) ->
     {ok, Config} = oidcc:get_openid_provider_info(ProviderId),
     Scopes = maps:get(request_scopes, Config),
-    start_link(Id, Nonce, ProviderId, Scopes).
-
-start_link(Id, Nonce, ProviderId, Scopes0) ->
-    Scopes =
-        case Scopes0 of
-            undefined ->
-                application:get_env(oidcc, scopes, [openid]);
-            _ ->
-                Scopes0
-        end,
     Pkce = generate_pkce_if_supported(ProviderId),
+    start_link(Id, Nonce, ProviderId, Pkce, Scopes).
+
+start_link(Id, Nonce, ProviderId, Pkce, Scopes0) ->
+    Scopes = case Scopes0 of
+                 undefined -> application:get_env(oidcc, scopes, [openid]);
+                 _ -> Scopes0
+             end,
     gen_server:start_link(?MODULE, {Id, Nonce, Pkce, ProviderId, Scopes}, []).
 
 -spec close(Pid :: pid()) -> ok.
