@@ -12,6 +12,8 @@
 -export([create_redirect_for_session/2]).
 -export([retrieve_and_validate_token/2]).
 -export([retrieve_and_validate_token/3]).
+-export([retrieve_token/3]).
+-export([validate_token/3]).
 -export([retrieve_user_info/2]).
 -export([retrieve_user_info/3]).
 -export([retrieve_fresh_token/2]).
@@ -157,21 +159,27 @@ retrieve_and_validate_token(AuthCode, ProviderId) ->
     retrieve_and_validate_token(AuthCode, ProviderId, #{}).
 
 retrieve_and_validate_token(AuthCode, ProviderId, Config) ->
+    case retrieve_token(AuthCode, ProviderId, Config) of
+        {ok, Token} ->
+            validate_token(Token, ProviderId, Config);
+        Error -> Error
+    end.
+
+retrieve_token(AuthCode, ProviderId, Config) ->
     Pkce = maps:get(pkce, Config, undefined),
-    Nonce = maps:get(nonce, Config, undefined),
-    Scopes = scopes_to_bin(maps:get(scope, Config, []), <<>>),
     {ok, Info} = get_openid_provider_info(ProviderId),
     #{local_endpoint := LocalEndpoint} = Info,
     QsBody = [ {<<"grant_type">>, <<"authorization_code">>},
                 {<<"code">>, AuthCode},
                 {<<"redirect_uri">>, LocalEndpoint}
               ],
-    case retrieve_a_token(QsBody, Pkce, Info) of
-        {ok, Token} ->
-            TokenMap = oidcc_token:extract_token_map(Token, Scopes),
-            oidcc_token:validate_token_map(TokenMap, ProviderId, Nonce, true);
-        Error -> Error
-    end.
+    retrieve_a_token(QsBody, Pkce, Info).
+
+validate_token(Token, ProviderId, Config) ->
+    Nonce = maps:get(nonce, Config, undefined),
+    Scopes = scopes_to_bin(maps:get(scope, Config, []), <<>>),
+    TokenMap = oidcc_token:extract_token_map(Token, Scopes),
+    oidcc_token:validate_token_map(TokenMap, ProviderId, Nonce, true).
 
 %% @doc
 %% retrieve the informations of a user given by its token map or an access token
