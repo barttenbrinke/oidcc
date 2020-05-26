@@ -269,6 +269,10 @@ retrieve_a_token(QsBodyIn, Pkce, OpenIdProviderInfo) ->
         maps:get(token_endpoint_auth_methods_supported,
                  OpenIdProviderInfo,
                  [<<"client_secret_basic">>]),
+
+retrieve_a_token(QsBodyIn, Pkce, #{ client_id := ClientId, client_secret := Secret, token_endpoint := Endpoint } = OpenIdProviderInfo) ->
+    AuthMethods = maps:get(token_endpoint_auth_methods_supported,
+                           OpenIdProviderInfo, [<<"client_secret_basic">>]),
     AuthMethod = select_preferred_auth(AuthMethods),
     Header0 = [],
     {QsBody, Header} =
@@ -278,7 +282,10 @@ retrieve_a_token(QsBodyIn, Pkce, OpenIdProviderInfo) ->
                                            Endpoint,
                                            Header,
                                            "application/x-www-form-urlencoded",
-                                           Body)).
+                                           Body));
+
+retrieve_a_token(_, _, _) ->
+  {error, token_endpoint_missing}.
 
 extract_subject(#{sub := Subject}) ->
     Subject;
