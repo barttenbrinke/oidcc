@@ -448,8 +448,8 @@ return_json_info({ok, #{status := 200, body := Data}}) ->
         Error ->
             {error, Error}
     end;
-return_json_info({ok, Map}) ->
-    {error, {bad_status, Map}}.
+return_json_info(HttpData) ->
+    {error, {bad_data, HttpData}}.
 
 basic_auth(User, Secret) ->
     UserEnc = uri_string:compose_query([{User, true}]),
