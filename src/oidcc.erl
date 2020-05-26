@@ -267,11 +267,7 @@ register_module(Module) ->
 retrieve_a_token(QsBodyIn, OpenIdProviderInfo) ->
     retrieve_a_token(QsBodyIn, undefined, OpenIdProviderInfo).
 
-retrieve_a_token(QsBodyIn, Pkce, OpenIdProviderInfo) ->
-    #{ client_id := ClientId,
-       client_secret := Secret,
-       token_endpoint := Endpoint
-     } = OpenIdProviderInfo,
+retrieve_a_token(QsBodyIn, Pkce, #{ client_id := ClientId, client_secret := Secret, token_endpoint := Endpoint } = OpenIdProviderInfo) ->
     AuthMethods = maps:get(token_endpoint_auth_methods_supported,
                            OpenIdProviderInfo, [<<"client_secret_basic">>]),
     AuthMethod = select_preferred_auth(AuthMethods),
@@ -282,8 +278,10 @@ retrieve_a_token(QsBodyIn, Pkce, OpenIdProviderInfo) ->
     Body = oidcc_http_util:qs(QsBody),
     return_token(oidcc_http_util:sync_http(post, Endpoint, Header,
                                            "application/x-www-form-urlencoded",
-                                           Body)).
+                                           Body));
 
+retrieve_a_token(_, _, _) ->
+  {error, token_endpoint_missing}.
 
 extract_subject(#{sub := Subject}) ->
     Subject;
