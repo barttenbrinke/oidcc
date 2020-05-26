@@ -437,8 +437,9 @@ return_json_info({ok, #{status := 200, body := Data}}) ->
     catch Error -> {error, Error}
     end;
 return_json_info({ok, Map}) ->
-    {error, {bad_status, Map}}.
-
+    {error, {bad_status, Map}};
+return_json_info(HttpData) ->
+    {error, {bad_data, HttpData}}.
 
 basic_auth(User, Secret) ->
     UserEnc = oidcc_http_util:urlencode(User),
