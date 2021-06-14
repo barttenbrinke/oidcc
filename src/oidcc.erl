@@ -160,23 +160,6 @@ retrieve_and_validate_token(AuthCode, ProviderId, Config) ->
     end.
 
 retrieve_token(AuthCode, ProviderId, Config) ->
-    Pkce = maps:get(pkce, Config, undefined),
-    Nonce = maps:get(nonce, Config, undefined),
-    Scopes = scopes_to_bin(maps:get(scope, Config, []), <<>>),
-    {ok, Info} = get_openid_provider_info(ProviderId),
-    #{local_endpoint := LocalEndpoint} = Info,
-    QsBody =
-        [{<<"grant_type">>, <<"authorization_code">>},
-         {<<"code">>, AuthCode},
-         {<<"redirect_uri">>, LocalEndpoint}],
-    case retrieve_token(QsBody, Pkce, Info) of
-        {ok, Token} ->
-            TokenMap = oidcc_token:extract_token_map(Token, Scopes),
-            oidcc_token:validate_token_map(TokenMap, ProviderId, Nonce, true);
-        Error ->
-            Error
-    end.
-
 validate_token(Token, ProviderId, Config) ->
     Nonce = maps:get(nonce, Config, undefined),
     Scopes = scopes_to_bin(maps:get(scope, Config, []), <<>>),
@@ -269,9 +252,7 @@ retrieve_token(QsBodyIn, Pkce, OpenIdProviderInfo) ->
         OpenIdProviderInfo,
     AuthMethods =
         maps:get(token_endpoint_auth_methods_supported,
-                 OpenIdProviderInfo,
-                 [<<"client_secret_basic">>]),
-                           OpenIdProviderInfo, [<<"client_secret_basic">>]),
+                OpenIdProviderInfo, [<<"client_secret_basic">>]),
     AuthMethod = select_preferred_auth(AuthMethods),
     Header0 = [],
     {QsBody, Header} =
