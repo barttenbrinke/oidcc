@@ -161,13 +161,15 @@ retrieve_and_validate_token(AuthCode, ProviderId, Config) ->
 
 retrieve_token(AuthCode, ProviderId, Config) ->
     Pkce = maps:get(pkce, Config, undefined),
+    Nonce = maps:get(nonce, Config, undefined),
+    Scopes = scopes_to_bin(maps:get(scope, Config, []), <<>>),
     {ok, Info} = get_openid_provider_info(ProviderId),
     #{local_endpoint := LocalEndpoint} = Info,
     QsBody =
         [{<<"grant_type">>, <<"authorization_code">>},
          {<<"code">>, AuthCode},
          {<<"redirect_uri">>, LocalEndpoint}],
-    case retrieve_a_token(QsBody, Pkce, Info) of
+    case retrieve_token(QsBody, Pkce, Info) of
         {ok, Token} ->
             TokenMap = oidcc_token:extract_token_map(Token, Scopes),
             oidcc_token:validate_token_map(TokenMap, ProviderId, Nonce, true);
@@ -218,7 +220,7 @@ retrieve_fresh_token(RefreshToken, Scopes, OpenIdProvider) ->
     {ok, Config} = get_openid_provider_info(OpenIdProvider),
     BodyQs0 = [{<<"refresh_token">>, RefreshToken}, {<<"grant_type">>, <<"refresh_token">>}],
     BodyQs = append_scope(Scopes, BodyQs0),
-    retrieve_a_token(BodyQs, Config).
+    retrieve_token(BodyQs, Config).
 
 %% @doc
 %% introspect the given token at the given provider
@@ -257,10 +259,10 @@ introspect_token(Token, ProviderId) ->
 register_module(Module) ->
     oidcc_client:register(Module).
 
-retrieve_a_token(QsBodyIn, OpenIdProviderInfo) ->
-    retrieve_a_token(QsBodyIn, undefined, OpenIdProviderInfo).
+retrieve_token(QsBodyIn, OpenIdProviderInfo) ->
+    retrieve_token(QsBodyIn, undefined, OpenIdProviderInfo).
 
-retrieve_a_token(QsBodyIn, Pkce, OpenIdProviderInfo) ->
+retrieve_token(QsBodyIn, Pkce, OpenIdProviderInfo) ->
     #{client_id := ClientId,
       client_secret := Secret,
       token_endpoint := Endpoint} =
@@ -269,9 +271,6 @@ retrieve_a_token(QsBodyIn, Pkce, OpenIdProviderInfo) ->
         maps:get(token_endpoint_auth_methods_supported,
                  OpenIdProviderInfo,
                  [<<"client_secret_basic">>]),
-
-retrieve_a_token(QsBodyIn, Pkce, #{ client_id := ClientId, client_secret := Secret, token_endpoint := Endpoint } = OpenIdProviderInfo) ->
-    AuthMethods = maps:get(token_endpoint_auth_methods_supported,
                            OpenIdProviderInfo, [<<"client_secret_basic">>]),
     AuthMethod = select_preferred_auth(AuthMethods),
     Header0 = [],
@@ -284,7 +283,7 @@ retrieve_a_token(QsBodyIn, Pkce, #{ client_id := ClientId, client_secret := Secr
                                            "application/x-www-form-urlencoded",
                                            Body));
 
-retrieve_a_token(_, _, _) ->
+retrieve_token(_, _, _) ->
   {error, token_endpoint_missing}.
 
 extract_subject(#{sub := Subject}) ->
