@@ -41,6 +41,11 @@ start_link(Id, Nonce, ProviderId) ->
     Pkce = generate_pkce_if_supported(ProviderId),
     start_link(Id, Nonce, ProviderId, Pkce, Scopes).
 
+start_link(Id, Nonce, ProviderId, Scopes0) ->
+    Pkce = generate_pkce_if_supported(ProviderId),
+    gen_server:start_link(?MODULE, {Id, Nonce, Pkce, ProviderId, Scopes0}, []).
+
+
 start_link(Id, Nonce, ProviderId, Pkce, Scopes0) ->
     Scopes = case Scopes0 of
                  undefined -> application:get_env(oidcc, scopes, [openid]);
