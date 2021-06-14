@@ -159,7 +159,6 @@ retrieve_and_validate_token(AuthCode, ProviderId, Config) ->
         Error -> Error
     end.
 
-retrieve_token(AuthCode, ProviderId, Config) ->
 validate_token(Token, ProviderId, Config) ->
     Nonce = maps:get(nonce, Config, undefined),
     Scopes = scopes_to_bin(maps:get(scope, Config, []), <<>>),
